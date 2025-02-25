@@ -1,16 +1,13 @@
 package com.esprit.userManagement.controller;
 
-import com.esprit.userManagement.dto.UserDTO;
 import com.esprit.userManagement.service.KeycloakService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,5 +72,7 @@ public class UserController {
 
         return response;
     }
+
+
 
 }

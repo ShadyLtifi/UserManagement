@@ -22,13 +22,14 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/admin/**").hasAuthority("ROLE_organisateur") // Make sure "ROLE_" is used
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/admin/**").hasAuthority("ROLE_organisateur")
                         .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt  // Configure resource server for JWT authentication
+                        .jwtAuthenticationConverter(jwtAuthenticationConverter())  // Converts JWT and adds roles with ROLE_ prefix
                 ))
-                .csrf().disable();
+                .csrf().disable();  // Disabling CSRF for simplicity in resource server setup
 
         return http.build();
     }
@@ -57,6 +58,7 @@ public class SecurityConfig {
                     clientRoleList.forEach(role -> authorities.add(new SimpleGrantedAuthority("" + role)));
                 }
             }
+
 
             // Log roles for debugging
             System.out.println("🔑 Extracted Authorities: " + authorities);

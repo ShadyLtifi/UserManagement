@@ -45,42 +45,44 @@ public class KeycloakService {
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "password");
-        body.add("client_id", "spring-boot-client");
+        body.add("client_id", "spring-boot-client"); // Ensure this matches the Keycloak Client ID
         body.add("username", username);
         body.add("password", password);
 
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
-
-        ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-
-        if (response.getStatusCode().is2xxSuccessful()) {
-            String accessToken = (String) response.getBody().get("access_token");
-
-            // Check if the access token is expired
-            if (isTokenExpired(accessToken)) {
-                String refreshToken = (String) response.getBody().get("refresh_token");
-                accessToken = refreshToken(refreshToken);  // Refresh token if expired
-            }
-
-            return accessToken;
-        } else {
-            throw new RuntimeException("Failed to retrieve token: " + response.getStatusCode());
+        // If your client is confidential, you MUST send client_secret
+        if (clientSecret != null && !clientSecret.isEmpty()) {
+            body.add("client_secret", clientSecret);
         }
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+        RestTemplate restTemplate = new RestTemplate();
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return (String) response.getBody().get("access_token");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve token: " + e.getMessage());
+        }
+
+        return null;
     }
 
-    // Check if the token is expired
+
+
+
     public boolean isTokenExpired(String token) {
         try {
-            // Use the injected jwtDecoder to decode the token
             Jwt jwt = jwtDecoder.decode(token);
             Instant now = Instant.now();
             // Check if the token is expired by comparing expiration with current time
             return jwt.getExpiresAt().isBefore(now);
         } catch (Exception e) {
-            // Handle errors with decoding the JWT (invalid token)
             throw new RuntimeException("Error decoding JWT token", e);
         }
     }
+
 
     // Method to refresh the token
     public String refreshToken(String refreshToken) {
@@ -96,6 +98,7 @@ public class KeycloakService {
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
+        RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
 
         if (response.getStatusCode().is2xxSuccessful()) {
@@ -106,30 +109,6 @@ public class KeycloakService {
     }
 
 
-    public List<UserDTO> getAllUsers(String accessToken) {
-        String usersUrl = keycloakUrl + "/admin/realms/" + realm + "/users";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);  // Add Bearer token for authorization
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<UserDTO[]> response = restTemplate.exchange(
-                    usersUrl,
-                    HttpMethod.GET,
-                    entity,
-                    UserDTO[].class
-            );
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                return Arrays.asList(response.getBody());
-            } else {
-                throw new RuntimeException("Failed to fetch users: " + response.getStatusCode());
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error fetching users: " + e.getMessage(), e);
-        }
-    }
 
 }
